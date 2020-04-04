@@ -1,17 +1,32 @@
 default:
 	make img
 
-ipl.bin: ipl.asm Makefile
-	nasm ipl.asm -o ipl.bin -l ipl.lst
-tail.bin: tail.asm Makefile
-	nasm tail.asm -o tail.bin -l tail.lst
-helloos.img: ipl.bin tail.bin Makefile
-	cat ipl.bin tail.bin > helloos.img
+ipl10.bin: ipl10.asm Makefile
+	nasm ipl10.asm -o ipl10.bin -l ipl10.lst
+
+asmhead.bin: asmhead.asm Makefile
+	nasm asmhead.asm -o asmhead.bin -l asmhead.lst
+
+nasmfunc.o: nasmfunc.asm Makefile
+	nasm -g -f elf nasmfunc.asm -o nasmfunc.o
+
+bootpack.hrb: bootpack.c har.ld Makefile # Cファイルをリンカスクリプトを用いてコンパイル
+	gcc -march=i486 -m32 -nostdlib -T har.ld bootpack.c -o bootpack.hrb
+
+haribote.sys: haribote.asm Makefile
+	cat asmhead.bin bootpack.hrb > haribote.sys
+
+haribote.img: ipl10.bin haribote.sys Makefile
+	mformat -f 1440 -C -B ipl10.bin -i haribote.img ::
+	mcopy haribote.sys -i haribote.img ::
 
 asm:
-	make -r ipl.bin
+	make -r ipl10.bin
+
 img:
-	make -r helloos.img
+	make -r haribote.img
+
 run:
 	make img
-	qemu-system-i386 helloos.img
+	qemu-system-i386 -fda haribote.img # '-fda' option is floppy disk
+
