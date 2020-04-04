@@ -1,5 +1,11 @@
-     1                                          ORG     0xc200      ; 0xc200 <- 0x8000 + 0x4200
-     2                                  
-     3                                  fin:
-     4 00000000 F4                              HLT
-     5 00000001 EBFD                            JMP     fin
+     1                                  ; haribote-os
+     2                                  ; TAB=4
+     3                                  
+     4                                          ORG     0xc200      ; 0xc200 <- 0x8000 + 0x4200
+     5                                                              ; このプログラムがどこに読み込まれるのか
+     6 00000000 B013                            MOV     AL,0x13     ; VGAグラフィックス、320x200x8bitカラー
+     7 00000002 B400                            MOV     AH,0x00
+     8 00000004 CD10                            INT     0x10
+     9                                  fin:
+    10 00000006 F4                              HLT
+    11 00000007 EBFD                            JMP     fin
