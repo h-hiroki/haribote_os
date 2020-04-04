@@ -24,7 +24,7 @@ CYLS        EQU     10      ; どこまで読み込むか
     DD      2880            ; このドライブの大きさをもう一度書く
     DB      0, 0, 0x29      ; よくわからないけどこの値にしておくといいらしい
     DD      0xffffffff      ; たぶんボリュームシリアル番号
-    DB      "HELLO-OS"      ; ディスクの名前                            (11Byte)
+    DB      "HARIBOTEOS"    ; ディスクの名前                            (11Byte)
     DB      "FAT12"         ; フォーマットの名前                        (8Byte)
     RESB    18              ; とりあえず18バイト開けておく
 
@@ -77,6 +77,9 @@ next:
     ADD     CH,1
     CMP     CH,CYLS
     JB      readloop        ; CH < CYLS だったらreadloopへ
+
+; ブートセクタの読み込みが終わったのでOS本体を実行
+    JMP     0xc200
 
 fin:
     HLT                     ; 何かあるまでCPUを停止させる
