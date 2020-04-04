@@ -7,6 +7,9 @@ ipl10.bin: ipl10.asm Makefile
 asmhead.bin: asmhead.asm Makefile
 	nasm asmhead.asm -o asmhead.bin -l asmhead.lst
 
+nasmfunc.o: nasmfunc.asm Makefile
+	nasm -g -f elf nasmfunc.asm -o nasmfunc.o
+
 bootpack.hrb: bootpack.c har.ld Makefile # Cファイルをリンカスクリプトを用いてコンパイル
 	gcc -march=i486 -m32 -nostdlib -T har.ld bootpack.c -o bootpack.hrb
 
