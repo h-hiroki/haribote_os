@@ -34,40 +34,60 @@
     33 0000004D 8ED0                        MOV     SS,AX
     34 0000004F BC007C                      MOV     SP,0x7c00
     35 00000052 8ED8                        MOV     DS,AX
-    36 00000054 8EC0                        MOV     ES,AX
+    36                                      ; MOV     ES,AX
     37                                  
-    38 00000056 BE[6E00]                    MOV     SI,msg
-    39                                  putloop:
-    40 00000059 8A04                        MOV     AL,[SI]
-    41 0000005B 83C601                      ADD     SI,1            ; SIに1を足す
-    42 0000005E 3C00                        CMP     AL,0
-    43 00000060 7409                        JE      fin
-    44 00000062 B40E                        MOV     AH,0x0e         ; 一文字表示ファンクション
-    45 00000064 BB0F00                      MOV     BX,15           ; カラーコード
-    46 00000067 CD10                        INT     0x10            ; ビデオBIOS呼び出し
-    47 00000069 EBEE                        JMP     putloop
-    48                                  fin:
-    49 0000006B F4                          HLT                     ; 何かアルバでCPUを停止させる
-    50 0000006C EBFD                        JMP     fin             ; 無限ループ
-    51                                  
-    52                                  msg:
-    53 0000006E 0A0A                        DB      0x0a, 0x0a      ; 改行を2つ
-    54 00000070 68656C6C6F2C20776F-         DB      "hello, world"
-    54 00000079 726C64             
-    55 0000007C 0A                          DB      0x0a            ; 改行
-    56 0000007D 00                          DB      0
-    57                                  
-    58                                      ;RESB    0x7dfe-$        ; エラーになる。。。
-    59 0000007E <res 00000180>              RESB	0x7dfe-0x7c00-($-$$)		; 0x7dfeまでを0x00で埋める命令
-    59          ******************       warning: uninitialized space declared in .text section: zeroing
-    60 000001FE 55AA                        DB      0x55, 0xaa
+    38                                      ; MOV     SI,msg
+    39                                  
+    40                                  ; Read disk
+    41                                  
+    42 00000054 B82008                      MOV     AX,0x0820
+    43 00000057 8EC0                        MOV     ES,AX
+    44 00000059 B500                        MOV     CH,0            ; シリンダ0
+    45 0000005B B600                        MOV     DH,0            ; ヘッド0
+    46 0000005D B102                        MOV     CL,2            ; セクタ2
+    47                                  
+    48 0000005F B402                        MOV     AH,0x02         ; AH=0x02 : ディスク読み込み
+    49 00000061 B001                        MOV     AL,1            ; 1セクタ
+    50 00000063 BB0000                      MOV     BX,0
+    51 00000066 B200                        MOV     DL,0x00         ; Aドライブ
+    52 00000068 CD13                        INT     0x13            ; ディスクBIOS呼び出し
+    53 0000006A 7203                        JC      error
+    54                                  
+    55                                  fin:
+    56 0000006C F4                          HLT                     ; 何かあるまでCPUを停止させる
+    57 0000006D EBFD                        JMP     fin             ; 無限ループ
+    58                                  
+    59                                  error:
+    60 0000006F BE[8400]                    MOV     SI,msg
     61                                  
-    62                                  
-    63                                  ; 以下はブートセクタ以外の部分の記述
-    64                                  
-    65 00000200 F0FFFF0000000000            DB      0xf0, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00
-    66 00000208 <res 000011F8>              RESB    4600
-    66          ******************       warning: uninitialized space declared in .text section: zeroing
-    67 00001400 F0FFFF0000000000            DB      0xf0, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00
-    68 00001408 <res 00166BF8>              RESB    1469432
-    68          ******************       warning: uninitialized space declared in .text section: zeroing
+    62                                  putloop:
+    63 00000072 8A04                        MOV     AL,[SI]
+    64 00000074 83C601                      ADD     SI,1            ; SIに1を足す
+    65 00000077 3C00                        CMP     AL,0
+    66 00000079 74F1                        JE      fin
+    67 0000007B B40E                        MOV     AH,0x0e         ; 一文字表示ファンクション
+    68 0000007D BB0F00                      MOV     BX,15           ; カラーコード
+    69 00000080 CD10                        INT     0x10            ; ビデオBIOS呼び出し
+    70 00000082 EBEE                        JMP     putloop
+    71                                  
+    72                                  msg:
+    73 00000084 0A0A                        DB      0x0a, 0x0a      ; 改行を2つ
+    74 00000086 68656C6C6F2C20776F-         DB      "hello, world"
+    74 0000008F 726C64             
+    75 00000092 0A                          DB      0x0a            ; 改行
+    76 00000093 00                          DB      0
+    77                                  
+    78                                      ;RESB    0x7dfe-$        ; エラーになる。。。
+    79 00000094 <res 0000016A>              RESB	0x7dfe-0x7c00-($-$$)		; 0x7dfeまでを0x00で埋める命令
+    79          ******************       warning: uninitialized space declared in .text section: zeroing
+    80 000001FE 55AA                        DB      0x55, 0xaa
+    81                                  
+    82                                  
+    83                                  ; 以下はブートセクタ以外の部分の記述
+    84                                  
+    85 00000200 F0FFFF0000000000            DB      0xf0, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00
+    86 00000208 <res 000011F8>              RESB    4600
+    86          ******************       warning: uninitialized space declared in .text section: zeroing
+    87 00001400 F0FFFF0000000000            DB      0xf0, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00
+    88 00001408 <res 00166BF8>              RESB    1469432
+    88          ******************       warning: uninitialized space declared in .text section: zeroing

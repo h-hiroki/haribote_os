@@ -33,9 +33,32 @@ entry:
     MOV     SS,AX
     MOV     SP,0x7c00
     MOV     DS,AX
-    MOV     ES,AX
+    ; MOV     ES,AX
 
+    ; MOV     SI,msg
+
+; Read disk
+
+    MOV     AX,0x0820
+    MOV     ES,AX
+    MOV     CH,0            ; シリンダ0
+    MOV     DH,0            ; ヘッド0
+    MOV     CL,2            ; セクタ2
+
+    MOV     AH,0x02         ; AH=0x02 : ディスク読み込み
+    MOV     AL,1            ; 1セクタ
+    MOV     BX,0
+    MOV     DL,0x00         ; Aドライブ
+    INT     0x13            ; ディスクBIOS呼び出し
+    JC      error
+
+fin:
+    HLT                     ; 何かあるまでCPUを停止させる
+    JMP     fin             ; 無限ループ
+
+error:
     MOV     SI,msg
+
 putloop:
     MOV     AL,[SI]
     ADD     SI,1            ; SIに1を足す
@@ -45,9 +68,6 @@ putloop:
     MOV     BX,15           ; カラーコード
     INT     0x10            ; ビデオBIOS呼び出し
     JMP     putloop
-fin:
-    HLT                     ; 何かアルバでCPUを停止させる
-    JMP     fin             ; 無限ループ
 
 msg:
     DB      0x0a, 0x0a      ; 改行を2つ
