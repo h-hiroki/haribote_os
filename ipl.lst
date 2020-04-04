@@ -34,60 +34,76 @@
     33 0000004D 8ED0                        MOV     SS,AX
     34 0000004F BC007C                      MOV     SP,0x7c00
     35 00000052 8ED8                        MOV     DS,AX
-    36                                      ; MOV     ES,AX
-    37                                  
-    38                                      ; MOV     SI,msg
-    39                                  
-    40                                  ; Read disk
-    41                                  
-    42 00000054 B82008                      MOV     AX,0x0820
-    43 00000057 8EC0                        MOV     ES,AX
-    44 00000059 B500                        MOV     CH,0            ; シリンダ0
-    45 0000005B B600                        MOV     DH,0            ; ヘッド0
-    46 0000005D B102                        MOV     CL,2            ; セクタ2
+    36                                  
+    37                                  ; Read disk
+    38                                  
+    39 00000054 B82008                      MOV     AX,0x0820
+    40 00000057 8EC0                        MOV     ES,AX
+    41 00000059 B500                        MOV     CH,0            ; シリンダ0
+    42 0000005B B600                        MOV     DH,0            ; ヘッド0
+    43 0000005D B102                        MOV     CL,2            ; セクタ2
+    44                                  
+    45                                  readloop:
+    46 0000005F BE0000                      MOV     SI,0            ; 失敗回数を数えるレジスタ
     47                                  
-    48 0000005F B402                        MOV     AH,0x02         ; AH=0x02 : ディスク読み込み
-    49 00000061 B001                        MOV     AL,1            ; 1セクタ
-    50 00000063 BB0000                      MOV     BX,0
-    51 00000066 B200                        MOV     DL,0x00         ; Aドライブ
-    52 00000068 CD13                        INT     0x13            ; ディスクBIOS呼び出し
-    53 0000006A 7203                        JC      error
-    54                                  
-    55                                  fin:
-    56 0000006C F4                          HLT                     ; 何かあるまでCPUを停止させる
-    57 0000006D EBFD                        JMP     fin             ; 無限ループ
-    58                                  
-    59                                  error:
-    60 0000006F BE[8400]                    MOV     SI,msg
-    61                                  
-    62                                  putloop:
-    63 00000072 8A04                        MOV     AL,[SI]
-    64 00000074 83C601                      ADD     SI,1            ; SIに1を足す
-    65 00000077 3C00                        CMP     AL,0
-    66 00000079 74F1                        JE      fin
-    67 0000007B B40E                        MOV     AH,0x0e         ; 一文字表示ファンクション
-    68 0000007D BB0F00                      MOV     BX,15           ; カラーコード
-    69 00000080 CD10                        INT     0x10            ; ビデオBIOS呼び出し
-    70 00000082 EBEE                        JMP     putloop
-    71                                  
-    72                                  msg:
-    73 00000084 0A0A                        DB      0x0a, 0x0a      ; 改行を2つ
-    74 00000086 68656C6C6F2C20776F-         DB      "hello, world"
-    74 0000008F 726C64             
-    75 00000092 0A                          DB      0x0a            ; 改行
-    76 00000093 00                          DB      0
+    48                                  retry:
+    49 00000062 B402                        MOV     AH,0x02         ; AH=0x02 : ディスク読み込み
+    50 00000064 B001                        MOV     AL,1            ; 1セクタ
+    51 00000066 BB0000                      MOV     BX,0
+    52 00000069 B200                        MOV     DL,0x00         ; Aドライブ
+    53 0000006B CD13                        INT     0x13            ; ディスクBIOS呼び出し
+    54 0000006D 7310                        JNC     next            ; エラーが置きなければnextへ
+    55 0000006F 83C601                      ADD     SI,1            ; SIに1を足す
+    56 00000072 83FE05                      CMP     SI,5            ; SIと5を比較
+    57 00000075 731A                        JAE     error           ; SI >= 5 だったらerrorへ
+    58 00000077 B400                        MOV     AH,0x00
+    59 00000079 B200                        MOV     DL,0x00         ; Aドライブ
+    60 0000007B CD13                        INT     0x13            ; ドライブのリセット
+    61 0000007D EBE3                        JMP     retry
+    62                                  
+    63                                  next:
+    64 0000007F 8CC0                        MOV     AX,ES           ; アドレスを0x200進める
+    65 00000081 83C020                      ADD     AX,0x0020
+    66 00000084 8EC0                        MOV     ES,AX           ; ADD ES,0x020 という命令がないのでこうする
+    67 00000086 80C101                      ADD     CL,1            ; CLに1を足す
+    68 00000089 80F912                      CMP     CL,18           ; CLと18を比較
+    69 0000008C 76D1                        JBE     readloop        ; CL <= 18 だったらreadloopへ
+    70                                  
+    71                                  fin:
+    72 0000008E F4                          HLT                     ; 何かあるまでCPUを停止させる
+    73 0000008F EBFD                        JMP     fin             ; 無限ループ
+    74                                  
+    75                                  error:
+    76 00000091 BE[A600]                    MOV     SI,msg
     77                                  
-    78                                      ;RESB    0x7dfe-$        ; エラーになる。。。
-    79 00000094 <res 0000016A>              RESB	0x7dfe-0x7c00-($-$$)		; 0x7dfeまでを0x00で埋める命令
-    79          ******************       warning: uninitialized space declared in .text section: zeroing
-    80 000001FE 55AA                        DB      0x55, 0xaa
-    81                                  
-    82                                  
-    83                                  ; 以下はブートセクタ以外の部分の記述
-    84                                  
-    85 00000200 F0FFFF0000000000            DB      0xf0, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00
-    86 00000208 <res 000011F8>              RESB    4600
-    86          ******************       warning: uninitialized space declared in .text section: zeroing
-    87 00001400 F0FFFF0000000000            DB      0xf0, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00
-    88 00001408 <res 00166BF8>              RESB    1469432
-    88          ******************       warning: uninitialized space declared in .text section: zeroing
+    78                                  putloop:
+    79 00000094 8A04                        MOV     AL,[SI]
+    80 00000096 83C601                      ADD     SI,1            ; SIに1を足す
+    81 00000099 3C00                        CMP     AL,0
+    82 0000009B 74F1                        JE      fin
+    83 0000009D B40E                        MOV     AH,0x0e         ; 一文字表示ファンクション
+    84 0000009F BB0F00                      MOV     BX,15           ; カラーコード
+    85 000000A2 CD10                        INT     0x10            ; ビデオBIOS呼び出し
+    86 000000A4 EBEE                        JMP     putloop
+    87                                  
+    88                                  msg:
+    89 000000A6 0A0A                        DB      0x0a, 0x0a      ; 改行を2つ
+    90 000000A8 68656C6C6F2C20776F-         DB      "hello, world"
+    90 000000B1 726C64             
+    91 000000B4 0A                          DB      0x0a            ; 改行
+    92 000000B5 00                          DB      0
+    93                                  
+    94                                      ;RESB    0x7dfe-$        ; エラーになる。。。
+    95 000000B6 <res 00000148>              RESB	0x7dfe-0x7c00-($-$$)		; 0x7dfeまでを0x00で埋める命令
+    95          ******************       warning: uninitialized space declared in .text section: zeroing
+    96 000001FE 55AA                        DB      0x55, 0xaa
+    97                                  
+    98                                  
+    99                                  ; 以下はブートセクタ以外の部分の記述
+   100                                  
+   101 00000200 F0FFFF0000000000            DB      0xf0, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00
+   102 00000208 <res 000011F8>              RESB    4600
+   102          ******************       warning: uninitialized space declared in .text section: zeroing
+   103 00001400 F0FFFF0000000000            DB      0xf0, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00
+   104 00001408 <res 00166BF8>              RESB    1469432
+   104          ******************       warning: uninitialized space declared in .text section: zeroing
